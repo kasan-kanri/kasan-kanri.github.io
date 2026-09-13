@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>地域支援・医薬品供給対応体制加算2〜5 管理 配布版</title>
+<style>
+:root{--navy:#1f4e78;--blue:#d9eaf7;--yellow:#fff2cc;--green:#e2f0d9;--red:#fce4d6;--gray:#f3f4f6;--border:#d1d5db}
+*{box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans JP",sans-serif;margin:0;background:#f7f9fb;color:#222}
+header{background:var(--navy);color:#fff;padding:16px;font-size:20px;font-weight:800}
+main{padding:16px;max-width:1900px;margin:auto}
+.controls,.cards{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.control{display:flex;flex-direction:column;gap:4px;font-size:12px}
+select,input[type=number]{padding:8px;border:1px solid #bbb;border-radius:7px;background:#fffdf2}
+.card{background:#fff;border:1px solid var(--border);border-radius:10px;padding:12px;min-width:200px}
+.card .label{font-size:12px;color:#666}.card strong{display:block;font-size:26px;margin-top:6px}
+.good{color:#166534}.bad{color:#b91c1c}.warn{color:#9a6700}
+button{padding:9px 12px;border:0;border-radius:7px;font-weight:700;cursor:pointer}
+.primary{background:var(--navy);color:white}.secondary{background:#e5e7eb}
+.section-title{font-weight:800;font-size:18px;margin:18px 0 8px}
+.focus-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;background:#fff;padding:12px;border:1px solid var(--border);border-radius:10px}
+.focus-grid label{display:flex;gap:8px;align-items:center;font-size:13px}
+.wrap{overflow:auto;background:#fff;border:1px solid var(--border);border-radius:10px;margin-bottom:18px}
+table{border-collapse:collapse;min-width:1900px;width:100%}
+th,td{border:1px solid #ddd;padding:6px;text-align:center;font-size:12px}
+th{background:var(--navy);color:#fff;position:sticky;top:0;z-index:2}
+td.item{text-align:left;min-width:255px;font-weight:700}
+.month input{width:50px;padding:5px;text-align:right;background:var(--yellow);border:1px solid #d8c876;border-radius:5px}
+.badge{font-weight:800;padding:3px 7px;border-radius:999px;display:inline-block}
+.ok{background:var(--green);color:#166534}.ng{background:var(--red);color:#b91c1c}.req{background:#fff2cc;color:#9a6700}
+.focus-row{background:#fffdf0}
+.small{font-size:11px;color:#666}.mandatory{font-weight:800;color:#b91c1c}
+.note{background:#fff;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:12px;line-height:1.6}
+@media(max-width:900px){.focus-grid{grid-template-columns:1fr 1fr}.cards{display:grid;grid-template-columns:1fr 1fr}}
+@media(max-width:600px){.focus-grid,.cards{grid-template-columns:1fr}}
+
+@media print{
+  body{background:#fff}
+  header{background:#fff!important;color:#000!important;border-bottom:2px solid #000}
+  .controls button,.no-print{display:none!important}
+  .wrap{overflow:visible;border:none}
+  table{min-width:0!important}
+  th,td{font-size:9px;padding:3px}
+  .section-title{page-break-after:avoid}
+}
+</style>
+</head>
+<body>
+<header>地域支援・医薬品供給対応体制加算 2〜5　月次・重点・戦略管理【配布版】</header>
+<main>
+<div class="note" style="margin-bottom:14px">
+<strong>配布用Webアプリ　Version 1.0</strong><br>
+入力した数値は、この端末・このブラウザ内だけに保存されます。他の利用者とは共有されません。
+</div>
+
+<div class="controls">
+  <div class="control"><span>店舗名</span><input id="storeName" type="text" placeholder="例：調布店" style="min-width:160px;padding:8px;border:1px solid #bbb;border-radius:7px;background:#fffdf2"></div>
+  <div class="control"><span>目標加算</span>
+    <select id="target" onchange="targetChanged()">
+      <option value="2">加算2</option>
+      <option value="3">加算3</option>
+      <option value="4">加算4</option>
+      <option value="5" selected>加算5</option>
+    </select>
+  </div>
+  <div class="control"><span>前年</span><input id="year1" type="number" value="2025"></div>
+  <div class="control"><span>当年</span><input id="year2" type="number" value="2026"></div>
+  <div class="control"><span>前年処方箋受付回数</span><input id="rx1" type="number" value="10000"></div>
+  <div class="control"><span>当年処方箋受付回数</span><input id="rx2" type="number" value="10000"></div>
+  <button class="primary" onclick="saveAll()">保存</button>
+  <button class="secondary" onclick="exportCSV()">CSV出力</button>
+  <button class="secondary" onclick="window.print()">印刷</button>
+  <button class="secondary" onclick="resetAll()">初期化</button>
+</div>
+
+<div class="cards">
+  <div class="card"><span class="label">店舗</span><strong id="storeCard" style="font-size:18px">未設定</strong></div>
+  <div class="card"><span class="label">目標</span><strong id="targetName">加算5</strong></div>
+  <div class="card"><span class="label">必要条件</span><strong id="ruleText" style="font-size:18px">9項目中7項目</strong></div>
+  <div class="card"><span class="label">最新入力月時点の達成</span><strong id="curr">0 / 9</strong><div class="small" id="latestLabel">最新入力月：未入力</div></div>
+  <div class="card"><span class="label">最新入力月時点の不足要件</span><strong id="remain" class="bad">あと7要件</strong></div>
+  <div class="card"><span class="label">必須項目</span><strong id="mandatoryText" style="font-size:17px">なし</strong></div>
+  <div class="card"><span class="label">最新入力月時点の総合判定</span><strong id="overall" class="bad">未達</strong></div>
+</div>
+
+<div class="section-title">重点項目を選択</div>
+<div id="focusGrid" class="focus-grid"></div>
+
+<div class="section-title">2年分の月別実績</div>
+<div class="wrap">
+<table>
+<thead>
+<tr>
+<th rowspan="2">No</th><th rowspan="2">重点</th><th rowspan="2">要件</th><th rowspan="2">基準/1万枚</th><th rowspan="2">必須</th>
+<th rowspan="2">前年必要数</th><th colspan="12" id="y1h">2025年</th><th rowspan="2">前年年間</th>
+<th rowspan="2">当年必要数</th><th colspan="12" id="y2h">2026年</th><th rowspan="2">当年入力累計</th>
+<th rowspan="2">最新月判定</th><th rowspan="2">最新月不足</th>
+</tr>
+<tr id="months"></tr>
+</thead>
+<tbody id="body"></tbody>
+</table>
+</div>
+
+<div class="section-title">月ごとの達成状況（各月末の直近12か月）</div>
+<div class="wrap">
+<table style="min-width:1250px">
+<thead><tr><th>要件</th><th>重点</th><th>1月</th><th>2月</th><th>3月</th><th>4月</th><th>5月</th><th>6月</th><th>7月</th><th>8月</th><th>9月</th><th>10月</th><th>11月</th><th>12月</th></tr></thead>
+<tbody id="statusBody"></tbody>
+</table>
+</div>
+
+<div class="section-title">月ごとの加算達成判定</div>
+<div class="wrap">
+<table style="min-width:1250px">
+<thead><tr><th>判定</th><th>1月</th><th>2月</th><th>3月</th><th>4月</th><th>5月</th><th>6月</th><th>7月</th><th>8月</th><th>9月</th><th>10月</th><th>11月</th><th>12月</th></tr></thead>
+<tbody><tr id="overallMonths"><td class="item">目標加算の条件</td></tr></tbody>
+</table>
+</div>
+
+<div class="section-title">重点項目の今月アクション</div>
+<div class="wrap">
+<table style="min-width:900px">
+<thead><tr><th>重点項目</th><th>直近12か月実績</th><th>必要数</th><th>あと必要</th><th>状態</th></tr></thead>
+<tbody id="actionBody"></tbody>
+</table>
+</div>
+
+<div class="section-title">使い方</div>
+<div class="note">
+① 店舗名と目標加算（2〜5）を選択します。<br>
+② 前年・当年の処方箋受付回数を入力します。<br>
+③ 月別実績を黄色セルに入力します。0件の月は「0」と入力してください。<br>
+④ 上部の「最新入力月時点の達成」「不足要件」「総合判定」で現在地を確認します。<br>
+⑤ 重点項目を選ぶと「今月アクション」に必要件数が表示されます。<br>
+⑥ 入力内容は自動保存されます。別端末・別ブラウザには引き継がれません。必要に応じてCSV出力してください。<br>
+⑦ 印刷ボタンから会議・面談用の紙資料として出力できます。
+</div>
+
+<div class="note">
+<strong>判定ロジック：</strong>
+加算2＝調剤基本料1、④を含む3項目以上。加算3＝調剤基本料1、9項目中7項目以上。
+加算4＝調剤基本料1以外、④・⑥を含む3項目以上。加算5＝調剤基本料1以外、9項目中7項目以上。
+①〜⑧は処方箋受付1万回当たりの年間回数、⑨は薬局当たりの年間回数です。
+月別判定は、各月末時点の直近12か月実績で判定します。上部の「達成」「不足要件」「総合判定」は年間合計ではなく、当年で最後に入力された月の月末時点（直近12か月）を自動で使用します。
+</div>
+</main>
+
+<script>
+const itemNames=[
+"時間外加算等・夜間休日等加算",
+"麻薬の調剤",
+"残薬調整・薬学的有害事象等防止",
+"服薬管理指導料（かかりつけ関連）",
+"外来服薬支援料1",
+"在宅・訪問薬剤管理（単一建物1人）",
+"服薬情報等提供",
+"小児特定加算",
+"地域多職種連携会議への出席"
+];
+const standardsBasic1=[40,1,20,20,1,24,30,1,1];
+const standardsOther=[400,10,40,40,12,24,60,1,5];
+const KEY="kasann2to5_web_v1";
+const $=id=>document.getElementById(id);
+
+function config(){
+  const t=Number($("target").value);
+  if(t===2)return {basic:true,required:3,mandatory:[3],name:"加算2"};
+  if(t===3)return {basic:true,required:7,mandatory:[],name:"加算3"};
+  if(t===4)return {basic:false,required:3,mandatory:[3,5],name:"加算4"};
+  return {basic:false,required:7,mandatory:[],name:"加算5"};
+}
+function std(i){return config().basic?standardsBasic1[i]:standardsOther[i]}
+function need(i,rx){return i===8?std(i):Math.ceil(std(i)*Math.max(Number(rx)||0,10000)/10000)}
+function mv(prefix,i,m){return Number($(`${prefix}_${i}_${m}`).value)||0}
+function annual(prefix,i){let s=0;for(let m=1;m<=12;m++)s+=mv(prefix,i,m);return s}
+function rolling12(i,m){let s=0;for(let x=1;x<=m;x++)s+=mv("b",i,x);for(let x=m+1;x<=12;x++)s+=mv("a",i,x);return s}
+function focus(i){return $(`focus_${i}`).checked}
+
+function build(){
+  let g=$("focusGrid");
+  itemNames.forEach((n,i)=>{
+    let lab=document.createElement("label");
+    lab.innerHTML=`<input type="checkbox" id="focus_${i}" onchange="calc()"> <span>${i+1}. ${n}</span>`;
+    g.appendChild(lab);
+  });
+
+  let mr=$("months");
+  for(let y=0;y<2;y++)for(let m=1;m<=12;m++){let th=document.createElement("th");th.textContent=m+"月";mr.appendChild(th)}
+
+  let body=$("body");
+  itemNames.forEach((n,i)=>{
+    let tr=document.createElement("tr");tr.id=`row_${i}`;
+    tr.innerHTML=`<td>${i+1}</td><td id="fm_${i}"></td><td class="item">${n}</td><td id="std_${i}"></td><td id="mand_${i}"></td><td id="n1_${i}"></td>`;
+    for(let m=1;m<=12;m++)tr.innerHTML+=`<td class="month"><input id="a_${i}_${m}" type="number" min="0" oninput="calc()"></td>`;
+    tr.innerHTML+=`<td id="s1_${i}"></td><td id="n2_${i}"></td>`;
+    for(let m=1;m<=12;m++)tr.innerHTML+=`<td class="month"><input id="b_${i}_${m}" type="number" min="0" oninput="calc()"></td>`;
+    tr.innerHTML+=`<td id="s2_${i}"></td><td id="j2_${i}"></td><td id="short_${i}"></td>`;
+    body.appendChild(tr);
+  });
+
+  let sb=$("statusBody");
+  itemNames.forEach((n,i)=>{
+    let tr=document.createElement("tr");
+    tr.innerHTML=`<td class="item">${n}</td><td id="sf_${i}"></td>`;
+    for(let m=1;m<=12;m++)tr.innerHTML+=`<td id="ms_${i}_${m}"></td>`;
+    sb.appendChild(tr);
+  });
+
+  let ab=$("actionBody");
+  itemNames.forEach((n,i)=>{
+    let tr=document.createElement("tr");tr.id=`actrow_${i}`;
+    tr.innerHTML=`<td class="item">${n}</td><td id="ar_${i}"></td><td id="an_${i}"></td><td id="as_${i}"></td><td id="ast_${i}"></td>`;
+    ab.appendChild(tr);
+  });
+
+  for(let m=1;m<=12;m++)$("overallMonths").innerHTML+=`<td id="om_${m}"></td>`;
+}
+
+function meetsRule(statuses){
+  const c=config();
+  const count=statuses.filter(Boolean).length;
+  const mandatoryOK=c.mandatory.every(i=>statuses[i]);
+  return {ok:count>=c.required && mandatoryOK,count,mandatoryOK};
+}
+
+function latestMonth(){
+  let latest=0;
+  for(let m=1;m<=12;m++){
+    let any=false;
+    for(let i=0;i<9;i++){
+      const el=$(`b_${i}_${m}`);
+      if(el && el.value!=="" && el.value!==null){any=true;break}
+    }
+    if(any)latest=m;
+  }
+  return latest;
+}
+
+function targetChanged(){
+  const c=config();
+  // 自動重点：必須を含め、必要項目数まで先頭から選択
+  document.querySelectorAll('[id^="focus_"]').forEach(x=>x.checked=false);
+  c.mandatory.forEach(i=>$(`focus_${i}`).checked=true);
+  for(let i=0;i<9 && document.querySelectorAll('[id^="focus_"]:checked').length<c.required;i++)$(`focus_${i}`).checked=true;
+  calc();
+}
+
+function calc(){
+  const c=config(), curStatuses=[];
+  $("storeCard").textContent=$("storeName").value.trim()||"未設定";
+  $("targetName").textContent=c.name;
+  $("ruleText").textContent=c.required+"項目以上";
+  $("mandatoryText").textContent=c.mandatory.length?c.mandatory.map(i=>(i+1)+"番").join("・"):"なし";
+  $("y1h").textContent=$("year1").value+"年"; $("y2h").textContent=$("year2").value+"年";
+
+  let latest=latestMonth();
+  $("latestLabel").textContent=latest?`最新入力月：${$("year2").value}年${latest}月末`:"最新入力月：未入力";
+  itemNames.forEach((n,i)=>{
+    const n1=need(i,$("rx1").value), n2=need(i,$("rx2").value);
+    const s1=annual("a",i), s2=annual("b",i);
+    const current12=latest?rolling12(i,latest):0;
+    const ok=latest?current12>=n2:false;
+    curStatuses.push(ok);
+    $(`std_${i}`).textContent=std(i);
+    $(`mand_${i}`).innerHTML=c.mandatory.includes(i)?'<span class="mandatory">必須</span>':'';
+    $(`n1_${i}`).textContent=n1;$(`n2_${i}`).textContent=n2;$(`s1_${i}`).textContent=s1;$(`s2_${i}`).textContent=s2;
+    $(`j2_${i}`).innerHTML=latest?`<span class="badge ${ok?'ok':'ng'}">${ok?'達成':'未達'}</span><div class="small">${current12}/${n2}</div>`:'<span class="badge ng">未入力</span>';
+    $(`short_${i}`).textContent=latest?Math.max(n2-current12,0):n2;
+    $(`fm_${i}`).innerHTML=focus(i)?'<span class="badge req">重点</span>':'';
+    $(`sf_${i}`).innerHTML=focus(i)?'<span class="badge req">重点</span>':'';
+    $(`row_${i}`).className=focus(i)?'focus-row':'';
+
+    for(let m=1;m<=12;m++){
+      const rr=rolling12(i,m), mok=rr>=n2, shortage=Math.max(n2-rr,0);
+      $(`ms_${i}_${m}`).innerHTML=`<span class="badge ${mok?'ok':'ng'}">${mok?'達成':'未達'}</span><div class="small">${rr}/${n2}</div><div class="small">${mok?'余裕 '+(rr-n2):'あと '+shortage+'件'}</div>`;
+    }
+
+    const ar=latest?rolling12(i,latest):0, ash=Math.max(n2-ar,0), aok=latest?ar>=n2:false;
+    $(`actrow_${i}`).style.display=focus(i)?"":"none";
+    $(`ar_${i}`).textContent=latest?ar:"-";$(`an_${i}`).textContent=n2;$(`as_${i}`).textContent=latest?ash:n2;
+    $(`ast_${i}`).innerHTML=latest?`<span class="badge ${aok?'ok':'ng'}">${aok?'達成・維持':'あと '+ash+'件'}</span>`:'<span class="badge ng">未入力</span>';
+  });
+
+  const res=meetsRule(curStatuses);
+  $("curr").textContent=latest?(res.count+" / 9"):"未入力";
+  let rem=latest?Math.max(c.required-res.count,0):c.required;
+  $("remain").textContent=latest?(rem===0?"必要数達成":"あと"+rem+"要件"):"未入力";
+  $("remain").className=latest && rem===0?"good":"bad";
+  $("overall").textContent=latest?(res.ok?"達成":"未達"):"未入力";
+  $("overall").className=latest && res.ok?"good":"bad";
+
+  for(let m=1;m<=12;m++){
+    let sts=itemNames.map((_,i)=>rolling12(i,m)>=need(i,$("rx2").value));
+    let rr=meetsRule(sts);
+    let mandatoryMissing=c.mandatory.filter(i=>!sts[i]).map(i=>(i+1)+"番");
+    $(`om_${m}`).innerHTML=`<span class="badge ${rr.ok?'ok':'ng'}">${rr.ok?'達成':'未達'}</span><div class="small">${rr.count}/9</div>${mandatoryMissing.length?`<div class="small">必須未達:${mandatoryMissing.join(",")}</div>`:""}`;
+  }
+  autoSave();
+}
+
+function data(){
+  let d={storeName:$("storeName").value,target:$("target").value,year1:$("year1").value,year2:$("year2").value,rx1:$("rx1").value,rx2:$("rx2").value,focus:[],m:{}};
+  for(let i=0;i<9;i++){d.focus[i]=focus(i);for(let m=1;m<=12;m++){d.m[`a_${i}_${m}`]=$(`a_${i}_${m}`).value;d.m[`b_${i}_${m}`]=$(`b_${i}_${m}`).value}}
+  return d;
+}
+function autoSave(){localStorage.setItem(KEY,JSON.stringify(data()))}
+function saveAll(){autoSave();alert("保存しました")}
+function load(){
+  let raw=localStorage.getItem(KEY);
+  if(!raw){targetChanged();return}
+  try{
+    let d=JSON.parse(raw);
+    ["storeName","target","year1","year2","rx1","rx2"].forEach(k=>{if(d[k]!=null && $(k))$(k).value=d[k]});
+    Object.entries(d.m||{}).forEach(([k,v])=>{if($(k))$(k).value=v});
+    (d.focus||[]).forEach((v,i)=>{if($(`focus_${i}`))$(`focus_${i}`).checked=!!v});
+  }catch(e){}
+  calc();
+}
+function resetAll(){if(confirm("入力データを初期化しますか？")){localStorage.removeItem(KEY);location.reload()}}
+function exportCSV(){
+  let rows=[["目標加算",config().name],["No","重点","要件","基準/1万枚","必須","前年必要数",...Array.from({length:12},(_,i)=>(i+1)+"月"),"前年年間","当年必要数",...Array.from({length:12},(_,i)=>(i+1)+"月"),"当年年間","判定","不足"]];
+  for(let i=0;i<9;i++){
+    let r=[i+1,focus(i)?"重点":"",itemNames[i],std(i),config().mandatory.includes(i)?"必須":"",$(`n1_${i}`).textContent];
+    for(let m=1;m<=12;m++)r.push($(`a_${i}_${m}`).value||0);
+    r.push($(`s1_${i}`).textContent,$(`n2_${i}`).textContent);
+    for(let m=1;m<=12;m++)r.push($(`b_${i}_${m}`).value||0);
+    r.push($(`s2_${i}`).textContent,$(`j2_${i}`).innerText,$(`short_${i}`).textContent);rows.push(r);
+  }
+  let csv="\ufeff"+rows.map(r=>r.map(x=>`"${String(x).replaceAll('"','""')}"`).join(",")).join("\n");
+  let blob=new Blob([csv],{type:"text/csv;charset=utf-8"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="加算2-5_管理.csv";a.click();
+}
+build();
+["storeName","year1","year2","rx1","rx2"].forEach(id=>$(id).addEventListener("input",calc));
+load();
+</script>
+</body>
+</html>

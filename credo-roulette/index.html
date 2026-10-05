@@ -1,1 +1,87 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>メディックス クレドルーレット</title>
+<style>
+:root{--teal:#159a91;--green:#9acb61;--ink:#4d514f}
+*{box-sizing:border-box}body{margin:0;font-family:"Noto Sans JP","Yu Gothic",system-ui,sans-serif;color:var(--ink);background:linear-gradient(#eef8dc 0 95px,#fff 95px)}
+header{height:95px;background:linear-gradient(180deg,#a8d56e,#eef8dc);position:relative}.brand{max-width:980px;margin:auto;padding:23px 20px;font-size:25px;font-weight:1000;color:#218d83}
+main{max-width:900px;margin:auto;padding:18px;text-align:center}h1{margin:5px 0;color:var(--teal);font-size:clamp(30px,6vw,46px);font-weight:1000}.lead{margin:0 0 12px;color:#707b75;font-weight:700}
+.stage{position:relative;width:min(92vw,610px);aspect-ratio:1;margin:22px auto 10px;padding:8px}
+canvas{display:block;width:100%;height:100%;border-radius:50%;filter:drop-shadow(0 6px 12px #0002)}
+.pointer{position:absolute;z-index:5;left:50%;top:-18px;transform:translateX(-50%);width:0;height:0;border-left:20px solid transparent;border-right:20px solid transparent;border-top:42px solid #ef805d;filter:drop-shadow(0 2px 2px #0002)}
+button{border:0;border-radius:999px;font-weight:900;cursor:pointer}.spin{padding:16px 44px;background:var(--teal);color:#fff;font-size:20px;box-shadow:0 4px 11px #0002}.spin:disabled{opacity:.55}.reset{margin-top:9px;padding:8px 16px;background:#fff;color:#6c817b;border:1px solid #bed8d0}
+.result{max-width:650px;min-height:92px;margin:18px auto 10px;padding:17px;border-radius:16px;border-top:4px solid var(--green);background:#fbfdf8;box-shadow:0 2px 10px #00000010}.result b{display:block;color:var(--teal);font-size:29px;margin-bottom:5px}.history{font-size:13px;color:#7a827e}.rule{font-size:12px;color:#929792;margin-top:15px}
+ 
+.spark{position:fixed;pointer-events:none;z-index:30;width:12px;height:12px;border-radius:3px;animation:fall 1.8s ease-out forwards}@keyframes fall{to{transform:translate(var(--dx),var(--dy)) rotate(720deg);opacity:0}}
+.result.win{animation:pop .75s cubic-bezier(.18,.89,.32,1.28);background:#fffdeb}@keyframes pop{0%{transform:scale(.88)}55%{transform:scale(1.06)}100%{transform:scale(1)}}
+.stage.spinning{animation:pulse 1s ease-in-out infinite alternate}@keyframes pulse{to{filter:drop-shadow(0 0 15px #79cfc0aa)}}
+.countdown{position:absolute;z-index:8;left:50%;top:50%;transform:translate(-50%,-50%);font-size:74px;font-weight:1000;color:#ef805d;text-shadow:0 4px #fff;opacity:0;pointer-events:none}.countdown.show{animation:cp .6s ease}@keyframes cp{35%{opacity:1;transform:translate(-50%,-50%) scale(1.2)}100%{opacity:0}}
 
+.selector{max-width:690px;margin:22px auto 8px;padding:16px;border-radius:18px;background:#f4faee;text-align:left}
+.selector h2{margin:0 0 5px;text-align:center;color:#159a91;font-size:19px}.selector p{margin:0 0 12px;text-align:center;font-size:12px;color:#758078}
+.choices{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}.choice{display:flex;align-items:center;justify-content:center;gap:5px;padding:9px 5px;border-radius:12px;background:#fff;border:2px solid #cfe3d5;font-weight:900;cursor:pointer;user-select:none}.choice input{accent-color:#159a91;width:17px;height:17px}.choice:has(input:checked){background:#e1e5e3;color:#999;border-color:#d5d8d6;text-decoration:line-through}
+.selBtns{text-align:center;margin-top:10px}.selBtns button{font-size:12px;padding:7px 12px;margin:2px;background:#fff;color:#55756d;border:1px solid #bfd8d0}
+@media(max-width:600px){.choices{grid-template-columns:repeat(2,1fr)}}
+</style></head><body>
+<header><div class="brand">MEDIX CREDO</div><div class="skyline">⌂ ♧ ⌂ ♙ ⌂ ♧ ⌂ ♙ ⌂ ♧ ⌂ ♙ ⌂ ♧ ⌂ ♙ ⌂ ♧ ⌂ ♙ ⌂</div></header>
+<main><h1>クレドルーレット</h1><p class="lead">今回みんなで実践するクレドを決めよう！</p>
+<div class="stage"><div class="pointer"></div><canvas id="wheelCanvas" width="700" height="700"></canvas><div id="countdown" class="countdown"></div></div>
+<button id="spin" class="spin">ルーレットを回す</button><br><button id="reset" class="reset">選出履歴をリセット</button>
+<div id="result" class="result">ボタンを押して今回のクレドを決めます</div><div id="history" class="history"></div>
+<section class="selector"><h2>今回の抽選から外すクレド</h2><p>前回と同じ項目など、出したくないクレドにチェックしてください。</p>
+<div id="choices" class="choices"></div>
+<div class="selBtns"><button id="prevExclude">前回選出を除外</button><button id="clearExclude">チェックを解除</button></div></section>
+<div class="rule">一度選ばれたクレドは、全10項目が一巡するまで候補から除外されます。</div></main>
+<script>
+const items=[["道標","三者の利を守ります。"],["挨拶","関わる全ての方に、笑顔で誠実な挨拶をします。"],["感謝","日常のどんな小さなことにも感謝します。"],["患者","患者様の声に真摯に耳を傾け、心から寄り添います。"],["地域","地域の皆様の相談に耳を傾け、健康増進をサポートします。"],["仲間","声を掛け合い、助け合うことで仲間の笑顔を守ります。"],["専門性","自己研鑽と共有により、メディックス全体の専門性を高めます。"],["安全・安心","常に安全・安心な医療を提供します。"],["育成","未来の人財育成も使命の一つと心得ます。"],["挑戦","新しいこと・難しいこと・苦手なことにも挑戦します。"]];
+const colors=["#9dd7cb","#dceca7","#f4d39f","#addbe7","#e8c7dd","#b8dfa9","#f1b5a5","#bcc9ea","#eee08b","#b7ddd7"];
+const c=document.getElementById("wheelCanvas"),ctx=c.getContext("2d"),N=items.length,step=Math.PI*2/N;
+let angle=0,used=JSON.parse(localStorage.getItem("medixCredoUsed")||"[]"),busy=false;
+function draw(){
+ const w=c.width,h=c.height,cx=w/2,cy=h/2,R=325;
+ ctx.clearRect(0,0,w,h);
+ // Segments: circle clipping guarantees no wedge can stick out.
+ ctx.save();ctx.beginPath();ctx.arc(cx,cy,R,0,Math.PI*2);ctx.clip();
+ for(let i=0;i<N;i++){
+   const a0=-Math.PI/2-step/2+i*step+angle,a1=a0+step;
+   ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,R,a0,a1);ctx.closePath();ctx.fillStyle=colors[i];ctx.fill();
+   ctx.strokeStyle="#ffffffaa";ctx.lineWidth=3;ctx.stroke();
+ }
+ ctx.restore();
+ ctx.beginPath();ctx.arc(cx,cy,R,0,Math.PI*2);ctx.strokeStyle="#fff";ctx.lineWidth=12;ctx.stroke();
+ // Labels are drawn separately in screen coordinates. They NEVER rotate.
+ for(let i=0;i<N;i++){
+   const a=-Math.PI/2+i*step+angle,r=232,x=cx+Math.cos(a)*r,y=cy+Math.sin(a)*r;
+   ctx.save();ctx.font='900 28px "Yu Gothic","Noto Sans JP",sans-serif';ctx.textAlign="center";ctx.textBaseline="middle";
+   ctx.lineJoin="round";ctx.strokeStyle="white";ctx.lineWidth=9;ctx.strokeText(items[i][0],x,y);ctx.fillStyle="#245d55";ctx.fillText(items[i][0],x,y);ctx.restore();
+ }
+ ctx.beginPath();ctx.arc(cx,cy,83,0,Math.PI*2);ctx.fillStyle="#fff";ctx.fill();ctx.strokeStyle="#ffffff";ctx.lineWidth=5;ctx.stroke();
+ ctx.font='900 27px "Yu Gothic","Noto Sans JP",sans-serif';ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillStyle="#159a91";ctx.fillText("CREDO",cx,cy);
+}
+draw();
+const spin=document.getElementById("spin"),result=document.getElementById("result"),history=document.getElementById("history");
+function hist(){history.textContent=used.length?"選出済み："+used.map(i=>items[i][0]).join(" ・ "):"選出済み：なし"}hist();
+const stage=document.querySelector(".stage"),countdown=document.getElementById("countdown");
+function beep(f=500,d=.05,v=.025){try{let A=window.AudioContext||window.webkitAudioContext,a=new A,o=a.createOscillator(),g=a.createGain();o.connect(g);g.connect(a.destination);o.frequency.value=f;g.gain.value=v;o.start();g.gain.exponentialRampToValueAtTime(.0001,a.currentTime+d);o.stop(a.currentTime+d)}catch(e){}}
+function confetti(){let cs=["#159a91","#9acb61","#ef805d","#f4d39f","#bcc9ea"];for(let i=0;i<65;i++){let e=document.createElement("i");e.className="spark";e.style.left=(45+Math.random()*10)+"vw";e.style.top=(35+Math.random()*8)+"vh";e.style.background=cs[i%cs.length];e.style.setProperty("--dx",(Math.random()*700-350)+"px");e.style.setProperty("--dy",(120+Math.random()*420)+"px");document.body.appendChild(e);setTimeout(()=>e.remove(),2000)}}
+function showCount(x){countdown.textContent=x;countdown.classList.remove("show");void countdown.offsetWidth;countdown.classList.add("show");beep(400,0.05)}
+const choices=document.getElementById("choices");
+items.forEach((it,i)=>{let lab=document.createElement("label");lab.className="choice";lab.innerHTML=`<input type="checkbox" value="${i}">${it[0]}`;choices.appendChild(lab)});
+function excluded(){return [...choices.querySelectorAll("input:checked")].map(x=>+x.value)}
+document.getElementById("clearExclude").onclick=()=>choices.querySelectorAll("input").forEach(x=>x.checked=false);
+document.getElementById("prevExclude").onclick=()=>{choices.querySelectorAll("input").forEach(x=>x.checked=false);if(used.length){choices.querySelector(`input[value="${used[used.length-1]}"]`).checked=true}};
+spin.onclick=()=>{
+ if(busy)return;if(used.length===10)used=[];
+ let ex=excluded(),av=items.map((_,i)=>i).filter(i=>!used.includes(i)&&!ex.includes(i));
+ if(!av.length){av=items.map((_,i)=>i).filter(i=>!ex.includes(i));used=[]}
+ if(!av.length){result.innerHTML="<b>抽選できません</b>少なくとも1項目はチェックを外してください。";return}
+ let pick=av[Math.floor(Math.random()*av.length)];
+ busy=true;spin.disabled=true;result.classList.remove("win");let n=3;showCount(n);let ci=setInterval(()=>{n--;if(n)showCount(n);else{clearInterval(ci);showCount("GO!");setTimeout(startWheel,500)}},650);function startWheel(){stage.classList.add("spinning");
+ // target places picked item's center at 12 o'clock.
+ let current=angle,targetBase=-pick*step;
+ while(targetBase<=current+Math.PI*6)targetBase+=Math.PI*2;
+ let target=targetBase+Math.PI*8,start=performance.now(),from=current,dur=8500;
+ function anim(t){let p=Math.min(1,(t-start)/dur),e=1-Math.pow(1-p,5);angle=from+(target-from)*e;draw();if(p<1)requestAnimationFrame(anim);else{angle=target%(Math.PI*2);draw();used.push(pick);localStorage.setItem("medixCredoUsed",JSON.stringify(used));result.innerHTML=`<b>🎉 今回のクレド：${items[pick][0]} 🎉</b>${items[pick][1]}`;stage.classList.remove("spinning");result.classList.add("win");beep(660,.12,.05);setTimeout(()=>beep(880,.2,.05),130);confetti();hist();busy=false;spin.disabled=false}}
+ requestAnimationFrame(anim);
+ }
+};
+document.getElementById("reset").onclick=()=>{used=[];localStorage.removeItem("medixCredoUsed");result.textContent="選出履歴をリセットしました";hist()};
+</script></body></html>
